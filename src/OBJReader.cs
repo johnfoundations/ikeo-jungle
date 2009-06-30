@@ -103,11 +103,18 @@ namespace ikeo
 		        			if(innerSplit.Length > 1)	// like : a/b/c
 		        			{
 		        				innerFaceList.Add(Convert.ToInt16(innerSplit[0]));
-		        				innerTextIndices.Add(Convert.ToInt16(innerSplit[1]));
-			        			
+		        				
+		        				if(innerSplit[1] != "")
+		        				{
+		        					innerTextIndices.Add(Convert.ToInt16(innerSplit[1]));
+		        				}
+		        				
 		        				if(innerSplit.Length == 3)
 		        				{
-		        					innerNormIndices.Add(Convert.ToInt16(innerSplit[2]));
+		        					if(innerSplit[2] != "")
+		        					{
+		        						innerNormIndices.Add(Convert.ToInt16(innerSplit[2]));
+		        					}
 		        				}
 		        			}
 		        			else	//just a
@@ -144,7 +151,7 @@ namespace ikeo
 	        	for(int j=0; j<verts.Count;j++)	//put all the verts in there
 	        	{
 	        		m.AddVertex(verts[j]);	//add the vertex by the face index
-	        		Debug.WriteLine("Adding vertex for " + verts[j].x +":" + verts[j].y + ":" + verts[j].z);
+//	        		Debug.WriteLine("Adding vertex for " + verts[j].x +":" + verts[j].y + ":" + verts[j].z);
 	        	}
 	        	
 	        	//create the texture coords
@@ -157,7 +164,7 @@ namespace ikeo
 	        	{
 	        		
 	        		m.AddTriangle(f[j]-1, f[j+1]-1, f[j+2]-1);
-	        		Debug.WriteLine("Adding face for " + f[j] + ":" + f[j+1] + ":" + f[j+2]);
+//	        		Debug.WriteLine("Adding face for " + f[j] + ":" + f[j+1] + ":" + f[j+2]);
 	        	}
 	        	
 	        	m.RemoveOrphanedVertices();	//get rid of everything not referenced
