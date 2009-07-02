@@ -42,7 +42,9 @@ namespace ikeo
 		/// </summary>
 		private void InitializeComponent()
 		{
-			this.glControl1 = new OpenTK.GLControl();
+//			this.glControl1 = new OpenTK.GLControl();
+			this.glControl1 = new CustomGLControl();
+			
 			this.label1 = new System.Windows.Forms.Label();
 			this.viewport1 = new System.Windows.Forms.Panel();
 			this.toolStrip1 = new System.Windows.Forms.ToolStrip();

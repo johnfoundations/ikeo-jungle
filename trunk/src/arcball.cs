@@ -87,7 +87,7 @@ namespace ikeo
                 //if its non-zero
                 {
                     //We're ok, so return the perpendicular vector as the transform after all
-                    NewRot.x = -Perp.x;	//added by ian - this was upside down
+                    NewRot.x = Perp.x;	//added by ian - this was upside down
                     NewRot.y = Perp.y;
                     NewRot.z = Perp.z;
                     //In the quaternion values, w is cosine (theta / 2), where theta is the rotation angle
