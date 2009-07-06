@@ -53,17 +53,19 @@ namespace ikeo
 			// viewport1
 			// 
 			this.viewport1.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
+			this.viewport1.Controls.Add(this.loadXML_butt);
+			this.viewport1.Controls.Add(this.xmlFileName_tb);
 			this.viewport1.Controls.Add(this.glControl1);
 			this.viewport1.Dock = System.Windows.Forms.DockStyle.Fill;
 			this.viewport1.Location = new System.Drawing.Point(0, 0);
 			this.viewport1.Name = "viewport1";
-			this.viewport1.Size = new System.Drawing.Size(792, 566);
+			this.viewport1.Size = new System.Drawing.Size(1016, 734);
 			this.viewport1.TabIndex = 2;
 			this.viewport1.Resize += new System.EventHandler(this.GlControl1Resize);
 			// 
 			// loadXML_butt
 			// 
-			this.loadXML_butt.Location = new System.Drawing.Point(158, 534);
+			this.loadXML_butt.Location = new System.Drawing.Point(154, 695);
 			this.loadXML_butt.Name = "loadXML_butt";
 			this.loadXML_butt.Size = new System.Drawing.Size(36, 23);
 			this.loadXML_butt.TabIndex = 14;
@@ -73,7 +75,7 @@ namespace ikeo
 			// 
 			// xmlFileName_tb
 			// 
-			this.xmlFileName_tb.Location = new System.Drawing.Point(12, 534);
+			this.xmlFileName_tb.Location = new System.Drawing.Point(8, 697);
 			this.xmlFileName_tb.Name = "xmlFileName_tb";
 			this.xmlFileName_tb.Size = new System.Drawing.Size(140, 20);
 			this.xmlFileName_tb.TabIndex = 13;
@@ -86,14 +88,13 @@ namespace ikeo
 			this.glControl1.Size = new System.Drawing.Size(150, 150);
 			this.glControl1.TabIndex = 0;
 			this.glControl1.VSync = false;
+			this.glControl1.Paint += new System.Windows.Forms.PaintEventHandler(this.GlControl1Paint);
 			// 
 			// MainForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(792, 566);
-			this.Controls.Add(this.loadXML_butt);
-			this.Controls.Add(this.xmlFileName_tb);
+			this.ClientSize = new System.Drawing.Size(1016, 734);
 			this.Controls.Add(this.viewport1);
 			this.Name = "MainForm";
 			this.Text = "BH-VizualizationApplication";
@@ -101,8 +102,8 @@ namespace ikeo
 			this.Resize += new System.EventHandler(this.GlControl1Resize);
 			this.ResizeEnd += new System.EventHandler(this.GlControl1Resize);
 			this.viewport1.ResumeLayout(false);
+			this.viewport1.PerformLayout();
 			this.ResumeLayout(false);
-			this.PerformLayout();
 		}
 //		private OpenTK.GLControl glControl1;
 		private CustomGLControl glControl1;

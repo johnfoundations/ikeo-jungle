@@ -51,12 +51,21 @@ namespace ikeo
 		#endregion
 		
 		#region text
-		TextureFont _sans = new TextureFont(new Font(FontFamily.GenericSansSerif, 12.0f));
+//		TextureFont _sans = new TextureFont(new Font(FontFamily.GenericSansSerif, 12.0f));
+		Font _sans = new System.Drawing.Font(FontFamily.GenericSansSerif, 12.0f);
 		ITextPrinter _text = new TextPrinter();
+
+		float _lineHeight = 20.0f;
 		
 		#endregion
 		
+		#region HUD info
+		int _totalVerticesInScene	= 0;
+		int _totalFacesInScene 		= 0;
+		#endregion
+		
 		#region animation
+		string _fps = "";
 		float rotation = 0;
 		Stopwatch sw = new Stopwatch();
 		int idleCounter = 0;
@@ -65,17 +74,23 @@ namespace ikeo
 		
 		#region drawing settings
 		float _lineSize = 1.0f;		//gl line render size
+		float _normalSize = .25f;
 		float _pointSize = 7.0f;		//gl node render size
 		float _red = 0.0f;			//gl red color
 		float _green = 0.0f;			//gl green color
 		float _blue = 0.0f;			//gl blue color;
 //		float _alpha = 1.0f;			//gl alpha color;
 		
-//		bool _drawWireFrame = true;		
-//		bool _drawFaces = true;
-		bool _drawClipPlanes = true;
-//		bool _drawImageTexture = true;
-		
+//		bool _drawWireFrame 	= true;		
+//		bool _drawFaces 		= true;
+		bool _drawClipPlanes 	= false;
+		bool _drawNormals 		= false;
+		bool _drawImageTexture 	= true;
+		bool _reverseNormals 	= true;
+		bool _drawVertices 		= false;
+		bool _drawNodeNumbers 	= false;
+		bool _drawHUD			= true;
+		bool _lightsOn			= true;
 		#endregion
 		
 		#region global object/display lists
@@ -112,10 +127,26 @@ namespace ikeo
         #endregion
        	
         #region lighting
-        private static float[] _LightAmbient = new float[] {0.1f,0.1f,0.1f,1.0f};
-        private static float[] _LightDiffuse = new float[] {1.0f,1.0f,1.0f,0.0f};
-        private static float[] _LightPosition = new float[] {0.0f,-1.0f,0.0f,0.0f};
-		private static float[] _LightSpecular = new float[] {1.0f,1.0f,1.0f,1.0f};
+		private static float[] _LightAmbient = new float[] {
+						0.1F,
+						0.1F,
+						0.1F,
+						1F};
+		private static float[] _LightDiffuse = new float[] {
+						1F,
+						1F,
+						1F,
+						0F};
+		private static float[] _LightPosition = new float[] {
+						.3F,
+						-1.0F,
+						0F,
+						0F};
+		private static float[] _LightSpecular = new float[] {
+						1F,
+						1F,
+						1F,
+						1F};
 
 		#endregion
 
@@ -161,13 +192,14 @@ namespace ikeo
 		{
 			_loaded = true;							//make sure the form is loaded
 			
-			this.WindowState = FormWindowState.Maximized;	//maximize the window
+//			this.WindowState = FormWindowState.Maximized;	//maximize the window
 			
 			glControl1.SwapBuffers();
 
 			glControl1.Load += new EventHandler(GlControlLoad);
 			glControl1.MouseMove += new System.Windows.Forms.MouseEventHandler(glOnMouseMove);
 			glControl1.SizeChanged += new EventHandler(GlControl1Resize);
+			glControl1.KeyDown += new KeyEventHandler(glControl1KeyDown);	//handle key presses
 			
 			GlControl1Resize(sender, e);
 			
@@ -203,7 +235,48 @@ namespace ikeo
 		{
 			PlotGL();	//on load - draw the gl content
 		}
-
+		
+		private void glControl1KeyDown(object sender, KeyEventArgs e)
+		{
+			if(!_loaded)
+				return;
+			if(e.KeyCode == Keys.N)
+			{
+				if(_drawNormals == true) _drawNormals = false;
+				else _drawNormals = true;
+			}
+			
+			if(e.KeyCode == Keys.V)
+			{
+				if(_drawVertices == true) _drawVertices = false;
+				else _drawVertices = true;
+			}
+			
+			if(e.KeyCode == Keys.T)
+			{
+				if(_drawImageTexture == true) _drawImageTexture = false;
+				else _drawImageTexture = true;
+			}
+			
+			if(e.KeyCode == Keys.D3)
+			{
+				if(_drawNodeNumbers == true) _drawNodeNumbers = false;
+				else _drawNodeNumbers = true;
+			}
+			
+			if(e.KeyCode == Keys.L)
+			{
+				if(_lightsOn = true) 
+				{
+					_lightsOn = false;
+					GL.Disable(EnableCap.Lighting);
+				}
+				else{
+					GL.Enable(EnableCap.Lighting);
+				}
+			}
+		}
+		
 		#region Compute frame rate, redraw continuously
 		/// <summary>
 		/// On application idle - 
@@ -248,7 +321,7 @@ namespace ikeo
 			accumulator += milliseconds;
 			if (accumulator > 1000)
 			{
-				
+				_fps = idleCounter.ToString();
 				accumulator -= 1000;
 				idleCounter = 0; // don't forget to reset the counter!
 			}
@@ -329,7 +402,6 @@ namespace ikeo
 //			GL.Disable(EnableCap.Blend);
             #endregion blending
 
-           
             GL.PolygonOffset(1.0f, 100.0f);
             GL.EnableClientState(EnableCap.PolygonOffsetFill);
 
@@ -450,14 +522,16 @@ namespace ikeo
 				//fill up the verts array
 				for(int i=0; i<m.vertexCount(); i++)
 				{
-					verts[vertCount] = (float)m.vertices[i].v.x;	// - sceneCenter.X;
-					verts[vertCount+1] = (float)m.vertices[i].v.y;	// - sceneCenter.Y;
-					verts[vertCount+2] = (float)m.vertices[i].v.z;	// - sceneCenter.Z;
+					verts[vertCount] 	= (float)m.vertices[i].v.x;
+					verts[vertCount+1] 	= (float)m.vertices[i].v.y;
+					verts[vertCount+2] 	= (float)m.vertices[i].v.z;
 					vertCount += 3;
 					
-					norms[normCount] = (float)m.vertices[i].normal.x;
-					norms[normCount+1] = (float)m.vertices[i].normal.y;
-					norms[normCount+2] = (float)m.vertices[i].normal.z;
+					_totalVerticesInScene++;	//keep track of this stuff
+					
+					norms[normCount] 	= (float)m.vertices[i].normal.x;
+					norms[normCount+1] 	= (float)m.vertices[i].normal.y;
+					norms[normCount+2] 	= (float)m.vertices[i].normal.z;
 //					Debug.WriteLine("Setup normal:" + norms[normCount] + "," + norms[normCount+1] + "," 
 //					                + norms[normCount+2]);
 					normCount+=3;
@@ -486,8 +560,8 @@ namespace ikeo
 				//fill up the text coords array
 				for(int i=0; i<m.vertexCount(); i++)
 				{
-					text[textCount] = (float)m.vertices[i].tex.x;
-					text[textCount + 1] = (float)m.vertices[i].tex.y;
+					text[textCount] 	= (float)m.vertices[i].tex.x;
+					text[textCount + 1] = 1.0f - (float)m.vertices[i].tex.y;	//reverse this for windows
 					textCount += 2;
 				}
 				
@@ -499,6 +573,8 @@ namespace ikeo
 					ind[indCount+2] = m.faces[i].vertices[2].label;
 					
 					indCount += 3;
+					
+					_totalFacesInScene ++;
 				}
 				
 				//add all the arrays to the lists
@@ -513,7 +589,22 @@ namespace ikeo
 			sceneCenter.Y = avgY/vCount;
 			sceneCenter.Z = avgZ/vCount;
 		}
-
+		
+		private void SetupVertexBufferObjects()
+		{
+			
+		}
+		
+		private void ReverseNormals()
+		{
+			foreach (Mesh m in _meshList)
+			{
+				m.ReverseNormals();
+			}
+			
+			_reverseNormals = false;	//turn it off
+		}
+		
 		private void SetupClipPlanes()
 		{
 		
@@ -610,14 +701,58 @@ namespace ikeo
 		{
 			GL.PushMatrix();                 // NEW: Prepare Dynamic Transform
             GL.MultMatrix(matrix);           // NEW: Apply Dynamic Transform
+            GL.Translate(0.0f-sceneCenter.X, 0.0f-sceneCenter.Y, 0.0f-sceneCenter.Z);
             
-			GL.Color3(Color.Black);	//draw black points
+            GL.PushAttrib(AttribMask.CurrentBit);
+            GL.Disable(EnableCap.Lighting);
+			GL.Color3(Color.Yellow);	//draw black points
             GL.PointSize(_pointSize);
-            GL.EnableClientState(EnableCap.VertexArray);
-            GL.VertexPointer(3, VertexPointerType.Float, 0, _points);
-            GL.DrawElements(BeginMode.Points, _pointInd.Length, DrawElementsType.UnsignedInt, _pointInd);
-           	GL.DisableClientState(EnableCap.VertexArray);	
-           	
+            GL.Begin(BeginMode.Points);
+            foreach(Mesh m in _meshList)
+            {
+            	for(int i=0; i<m.vertexCount(); i++)
+            	{
+            		Vector v = m.vertices[i].v;
+            		GL.Vertex3(v.x, v.y, v.z);
+            	}
+            	
+            }
+            
+            GL.End();
+           	GL.PopAttrib();
+           	GL.Enable(EnableCap.Lighting);
+           	GL.PopMatrix(); // NEW: Unapply Dynamic Transform
+		}
+		
+		private void DrawNormals()
+		{
+			GL.PushMatrix();                 // NEW: Prepare Dynamic Transform
+          	GL.MultMatrix(matrix);           // NEW: Apply Dynamic Transform
+			GL.Translate(0.0f-sceneCenter.X, 0.0f-sceneCenter.Y, 0.0f-sceneCenter.Z);
+			
+			GL.Disable(EnableCap.Lighting);
+			GL.PushAttrib(AttribMask.CurrentBit);
+			GL.Color3(Color.White);
+            GL.LineWidth(_normalSize);
+            
+            GL.Begin(BeginMode.Lines);
+            
+            foreach(Mesh m in _meshList)
+            {
+
+            	for(int i=0; i<m.vertexCount(); i++)
+            	{
+            		Vector v1 = m.vertices[i].v;
+            		Vector v2 = m.vertices[i].normal + v1;
+            		
+            		GL.Vertex3(v1.x, v1.y, v1.z);
+            		GL.Vertex3(v2.x, v2.y, v2.z);
+            	}
+            }
+            
+            GL.End();
+            GL.PopAttrib();
+            GL.Enable(EnableCap.Lighting);
            	GL.PopMatrix(); // NEW: Unapply Dynamic Transform
 		}
 		
@@ -630,8 +765,12 @@ namespace ikeo
 
 			GL.EnableClientState(EnableCap.VertexArray);
 			GL.EnableClientState(EnableCap.NormalArray);
-			GL.EnableClientState(EnableCap.TextureCoordArray);
-
+			
+			if(_drawImageTexture)
+			{
+				GL.EnableClientState(EnableCap.TextureCoordArray);
+			}
+			
 			for(int i=0; i<_meshVerts.Count; i++)	//pick one of the lists to use as the count
 			{
 
@@ -643,13 +782,16 @@ namespace ikeo
 				GL.NormalPointer(NormalPointerType.Float, 0, n);
 				GL.VertexPointer(3, VertexPointerType.Float, 0, v);
 				
-				if(_imageLoaded)
+				if(_drawImageTexture)
 				{
-					GL.Enable(EnableCap.Texture2D);
-					GL.BindTexture(TextureTarget.Texture2D, _texture);
-//            		GL.Enable(EnableCap.Blend);
-            		GL.TexCoordPointer(2, TexCoordPointerType.Float, 0 ,t);
-
+					if(_imageLoaded)
+					{
+						GL.Enable(EnableCap.Texture2D);
+						GL.BindTexture(TextureTarget.Texture2D, _texture);
+	//            		GL.Enable(EnableCap.Blend);
+	            		GL.TexCoordPointer(2, TexCoordPointerType.Float, 0 ,t);
+	
+					}
 				}
 
 				//DRAW FACES
@@ -658,8 +800,11 @@ namespace ikeo
 				GL.DrawElements(BeginMode.Triangles,ind.Length, DrawElementsType.UnsignedInt, ind);
 				
 				//turn off texturing before line drawing
-				GL.DisableClientState(EnableCap.TextureCoordArray);
-				GL.Disable(EnableCap.Texture2D);
+				if(_drawImageTexture)
+				{
+					GL.DisableClientState(EnableCap.TextureCoordArray);
+					GL.Disable(EnableCap.Texture2D);
+				}
 			
 				if(!clipTest)
 				{
@@ -698,41 +843,102 @@ namespace ikeo
 
             GL.PushMatrix();                 // NEW: Prepare Dynamic Transform
             GL.MultMatrix(matrix);           // NEW: Apply Dynamic Transform
+            GL.Translate(0.0f-sceneCenter.X, 0.0f-sceneCenter.Y, 0.0f-sceneCenter.Z);
+            GL.Disable(EnableCap.Lighting);
+            int vCount = 0;
             
-           	foreach (BHNode n in _nodeList)
+//           foreach (BHNode n in _nodeList)
+			foreach(Mesh m in _meshList)
               {
-
-	              double[] modelViewMatrix = new double[16];
-	              double[] projectionMatrix = new double[16];
-	              int[] viewport = new int[4];
-	               
-	              Vector3 objPoint = new Vector3((float)n.X, 
-	                                              (float)n.Z,
-	                                              (float)n.Y);
-	              Vector3 winPoint = new Vector3(0f,0f,0f);
-	               
-	              GL.GetDouble(GetPName.ModelviewMatrix, modelViewMatrix);
-	              GL.GetDouble(GetPName.ProjectionMatrix,projectionMatrix);
-	              GL.GetInteger(GetPName.Viewport, viewport);
-	              
-	              OpenTK.Graphics.Glu.Project(objPoint, modelViewMatrix,
-	                                           projectionMatrix,
-	                                           viewport,
-	                                           out winPoint);
-
-	            //text.Begin() sets up and orthogonal matrix with x->view.width (left->right)
-	            //y->view.height (top->bottom), then resets it after drawing
-	              _text.Begin();
-
-            			GL.Color3(Color.PaleGoldenrod);
-            			//translate has a weird winY that needs to be further translated by viewport[3]
-            			GL.Translate(winPoint.X, viewport[3] - winPoint.Y, 0.0f);
-           		 		_text.Draw(n.Id.ToString(), _sans);
-
-            		_text.End();
+				for(int i=0; i<m.vertexCount(); i++)
+				{
+		             double[] modelViewMatrix = new double[16];
+		             double[] projectionMatrix = new double[16];
+		             int[] viewport = new int[4];
+		             
+//		             Vector3 objPoint = new Vector3((float)n.X, 
+//		                                             (float)n.Z,
+//		                                             (float)n.Y);
+		             Vector3 objPoint = new Vector3((float)m.vertices[i].v.x,
+		                                            (float)m.vertices[i].v.y,
+		                                            (float)m.vertices[i].v.z);
+		             
+		             Vector3 winPoint = new Vector3(0f,0f,0f);
+		              
+		             GL.GetDouble(GetPName.ModelviewMatrix, modelViewMatrix);
+		             GL.GetDouble(GetPName.ProjectionMatrix,projectionMatrix);
+		             GL.GetInteger(GetPName.Viewport, viewport);
+		             
+		             OpenTK.Graphics.Glu.Project(objPoint, modelViewMatrix,
+		                                          projectionMatrix,
+		                                          viewport,
+		                                          out winPoint);
+		           
+		           //text.Begin() sets up and orthogonal matrix with x->view.width (left->right)
+		           //y->view.height (top->bottom), then resets it after drawing
+		           _text.Begin();
+	            	
+//		           GL.Color3(Color.PaleGoldenrod);
+	            	//translate has a weird winY that needs to be further translated by viewport[3]
+	            	GL.Translate(winPoint.X, viewport[3] - winPoint.Y, 0.0f);
+//	           	 	_text.Draw(n.Id.ToString(), _sans);
+	            	_text.Print(vCount.ToString(), _sans, Color.Black);
+	
+	            	_text.End();
+            	
+            		vCount++;
+				}
 
                }
+			GL.Enable(EnableCap.Lighting);
 			GL.PopMatrix(); // NEW: Unapply Dynamic Transform
+		}
+		
+		private void DrawHUD()
+		{
+
+			GL.PushMatrix();
+			
+			// switch to projection mode
+			GL.MatrixMode(MatrixMode.Projection);
+			// save previous matrix which contains the
+			//settings for the perspective projection
+			GL.PushMatrix();
+			// reset matrix
+			GL.LoadIdentity();
+			
+			// set a 2D orthographic projection
+			Glu.Ortho2D(0, glControl1.Width, 0, glControl1.Height);
+
+			GL.MatrixMode(MatrixMode.Modelview);
+			
+			GL.PushMatrix();
+			GL.LoadIdentity();
+			
+			//draw text here
+			GL.Disable(EnableCap.Lighting);
+
+			_text.Begin();
+			GL.Translate(10.0f, 10.0f, 0.0f);
+			_text.Print("Total vertices \t: " + _totalVerticesInScene.ToString(), _sans, Color.LightGray);
+			_text.End();
+			_text.Begin();
+			GL.Translate(10.0f, 10.0f + _lineHeight, 0.0f);
+			_text.Print("Total faces \t: " + _totalFacesInScene.ToString(), _sans, Color.LightGray);
+			_text.End();
+//			_text.Begin();
+//			GL.Translate(10.0f, 30.0f + _lineHeight, 0.0f);
+//			_text.Draw("FPS \t: " + _fps, _sans);
+//			_text.End();
+
+			GL.Enable(EnableCap.Lighting);
+			
+			GL.MatrixMode(MatrixMode.Projection);
+			GL.PopMatrix();
+			GL.MatrixMode(MatrixMode.Modelview);
+			GL.PopMatrix();
+			
+			
 		}
 		
 		/// <summary>
@@ -752,9 +958,9 @@ namespace ikeo
                 GL.LoadIdentity();
 				
 				DrawBackground();
+			
 //				DrawGrid();
 
-              	
               	//look at the scene center
               	//TODO: back this off by the distance
               	//of the scene bounding sphere
@@ -770,8 +976,9 @@ namespace ikeo
                 	double dist	= 	Math.Sqrt(Math.Pow(sceneCenter.X,2) + 
               						Math.Pow(sceneCenter.Y,2) + 
               						Math.Pow(sceneCenter.Z,2));
-                	
+
 					
+                	#region clip planes
                 	if(_drawClipPlanes)
                 	{
 	                	GL.Enable(EnableCap.ClipPlane0);
@@ -804,15 +1011,56 @@ namespace ikeo
 		                GL.Disable(EnableCap.StencilTest);								//turn off stencil testing
 		                GL.Enable(EnableCap.ClipPlane0);								//turn the clip plane back on
                 	}
+                	#endregion
+                	
+                	#region meshes
+                	GL.Enable(EnableCap.CullFace);
+                	GL.CullFace(CullFaceMode.Back);
 	                DrawMeshesSolid(true);
-	                
-//	                DrawLines();			//draw the lines
-//	              	DrawPoints();			//draw the points
+	                GL.Disable(EnableCap.CullFace);
+	                #endregion
 
+	                #region normals
+	                if(_reverseNormals)
+					{
+						ReverseNormals();
+					}
+	                
+	                if(_drawNormals)
+	                {
+	                	DrawNormals();
+	                }
+                	#endregion
+                	
+                	#region draw curves
+                	#endregion
+                	
+//	                DrawLines();			//draw the lines
+                	
+                	#region vertices
+                	if(_drawVertices)
+                	{
+	              		DrawPoints();			//draw the points
+                	}
+					#endregion
+					
+                	#region node numbers
+                	if(_drawNodeNumbers)
+                	{
+                		DrawNodeNumbers();
+                	}
+                	#endregion
                 }
                 
                 #endregion 
 
+                #region draw HUD
+                if(_drawHUD)
+                {
+               		DrawHUD();
+                }
+                #endregion
+                
               	GL.Flush();     			// Flush the GL Rendering Pipeline
                 glControl1.SwapBuffers();	//YOU NEED THIS FOR OPENTK!!!
 
@@ -998,10 +1246,10 @@ namespace ikeo
 			GL.ShadeModel(ShadingModel.Smooth);
 	
 			GL.Begin(BeginMode.Quads);
-				GL.Color3(0.4,0.4,0.4);
+				GL.Color3(0.4,0.6,0.8);
 					GL.Vertex2(0,0);
 					GL.Vertex2(glControl1.Width,0);
-				GL.Color3(0.75,0.75,0.75);
+				GL.Color3(0.9,0.9,0.9);
 					GL.Vertex2(glControl1.Width, glControl1.Height);
 					GL.Vertex2(0,glControl1.Height);
 			GL.End();
@@ -1070,7 +1318,10 @@ namespace ikeo
 				
 			}
             else
-                throw new System.IO.FileNotFoundException(_texturePath);
+            {
+//                throw new System.IO.FileNotFoundException(_texturePath);
+            	_imageLoaded = false;
+            }
             
             _imageLoaded = true;
 		}
@@ -1119,14 +1370,14 @@ namespace ikeo
            	
             BitmapData data = _bitmap.LockBits(new Rectangle(0, 0, _bitmap.Width, _bitmap.Height),
                 ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-        
+       
            	GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
             GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, (float)TextureEnvModeCombine.Replace);
 //            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureParameterName.ClampToBorder);
 //            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureParameterName.ClampToBorder);
             GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, data.Width, data.Height, 0,
-                OpenTK.Graphics.PixelFormat.Rgba, PixelType.UnsignedByte, data.Scan0);
+                OpenTK.Graphics.PixelFormat.Bgra, PixelType.UnsignedByte, data.Scan0);
 
             _bitmap.UnlockBits(data);
 
