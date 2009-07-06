@@ -26,27 +26,36 @@ namespace ikeo
 	/// </summary>
 	public class OBJReader
 	{
+		public List<Vector> verts;
+		public List<Vector> textCoords;
+		public List<Vector> norms;
+		public List<Mesh> meshes;
+		public ArrayList indices;
+		public ArrayList textIndices;
+		public ArrayList normIndices;
+		
 		public OBJReader(string fileName)
 		{
-			
+			LoadMeshesFromOBJ(fileName);
 		}
 		
-		public static List<Mesh> LoadMeshesFromOBJ(string fileName)
+		public void LoadMeshesFromOBJ(string fileName)
 		{
-			List<Mesh> meshes = new List<Mesh>();	//a list to hold the meshes
+			meshes = new List<Mesh>();	//a list to hold the meshes
 			int meshCount = 0;
 			
 			int vertCounter 		= 0;
-			List<Vector> verts 		= new List<Vector>();	//one big array to hold all the verts
-			List<Vector> textCoords = new List<Vector>();	//another to hold the texture coords
-			List<Vector> norms		= new List<Vector>();	//and one more to hold the normals
+			verts 		= new List<Vector>();	//one big array to hold all the verts
+			textCoords 	= new List<Vector>();	//another to hold the texture coords
+			norms		= new List<Vector>();	//and one more to hold the normals
 			
-			ArrayList faceIndices	= new ArrayList();
-			List<int> innerFaceList = new List<int>();
-			ArrayList textIndices		= new ArrayList();
-			List<int> innerTextIndices	= new List<int>();
-			ArrayList normIndices		= new ArrayList();
-			List<int> innerNormIndices	= new List<int>();
+			indices	= new ArrayList();
+			List<int> innerIndexList = new List<int>();		//list to hold inner face, texture, and normal indices
+															//right now, it just holds face indices!!!
+			textIndices = new ArrayList();
+			List<int> innerTextIndices = new List<int>();
+			normIndices = new ArrayList();
+			List<int> innerNormIndices = new List<int>();
 			
 			#region read file
 	        using(TextReader sr = new StreamReader(fileName))
@@ -60,23 +69,23 @@ namespace ikeo
 	        		{	
 	        			if(meshCount == 0)
 	        			{
-							faceIndices.Add(innerFaceList);		//add the first set of sub lists
-	        				textIndices.Add(innerTextIndices);
-	        				normIndices.Add(innerNormIndices);
+							indices.Add(innerIndexList);		//add the first set of sub lists
+							textIndices.Add(innerTextIndices);
+							normIndices.Add(innerNormIndices);
 	        			}
 	        			else
 	        			{
-	        				faceIndices.Add(innerFaceList);				//add the previous one
-	        				textIndices.Add(innerTextIndices);
-	        				normIndices.Add(innerNormIndices);
-	        				
+	        				indices.Add(innerIndexList);				//add the previous one
+							textIndices.Add(innerTextIndices);
+							normIndices.Add(innerNormIndices);
+							
+	        				innerIndexList = new List<int>();	//make a new one
 	        				innerTextIndices = new List<int>();
 	        				innerNormIndices = new List<int>();
-	        				innerFaceList = new List<int>();	//make a new one
 	        				
-	        				faceIndices.Add(innerFaceList);		//add the one you've just created
-	        				textIndices.Add(innerTextIndices);
-	        				normIndices.Add(innerNormIndices);
+	        				indices.Add(innerIndexList);		//add the one you've just created
+							textIndices.Add(innerTextIndices);
+							normIndices.Add(innerNormIndices);
 	        			}
 	        			
 	        			meshCount++;	
@@ -102,11 +111,14 @@ namespace ikeo
 
 		        			if(innerSplit.Length > 1)	// like : a/b/c
 		        			{
-		        				innerFaceList.Add(Convert.ToInt16(innerSplit[0]));
+		        				innerIndexList.Add(Convert.ToInt16(innerSplit[0]));
 		        				
 		        				if(innerSplit[1] != "")
 		        				{
 		        					innerTextIndices.Add(Convert.ToInt16(innerSplit[1]));
+		        				}
+		        				else{
+		        					innerTextIndices.Add(0);	//add a zero as a placeholder
 		        				}
 		        				
 		        				if(innerSplit.Length == 3)
@@ -115,11 +127,14 @@ namespace ikeo
 		        					{
 		        						innerNormIndices.Add(Convert.ToInt16(innerSplit[2]));
 		        					}
+		        					else{
+		        						innerNormIndices.Add(0);
+		        					}
 		        				}
 		        			}
 		        			else	//just a
 		        			{
-		        				innerFaceList.Add(Convert.ToInt16(innerSplit[0]));
+		        				innerIndexList.Add(Convert.ToInt16(innerSplit[0]));
 		        			}
 	        			}
 
@@ -136,13 +151,11 @@ namespace ikeo
 	        #endregion
 	        
 	        #region build meshes
-	        for(int i=0; i<faceIndices.Count; i++)	//loop through the entire arrayList of lists
+	        for(int i=0; i<indices.Count; i++)	//loop through the entire arrayList of lists of indices
 	        {
 
-	        	List<int> f = faceIndices[i] as List<int>;	//the curr face index list 
-	        	List<int> t = textIndices[i] as List<int>;	//the curr texture coordinate index list
-	        	List<int> n = normIndices[i] as List<int>;	//the curr normals list - this doesn't matter yet...it's empty
-	        	
+	        	List<int> ind = indices[i] as List<int>;	//the curr face index list 
+
 	        	//stride by three creating new triangular meshes
 	        	Mesh m = new Mesh();
 	        	meshes.Add(m);
@@ -160,10 +173,10 @@ namespace ikeo
 	        		m.vertices[j].tex = textCoords[j];
 	        	}
 	        	//add the faces
-	        	for(int j=0; j<f.Count-2; j+=3)
+	        	for(int j=0; j<ind.Count-2; j+=3)
 	        	{
 	        		
-	        		m.AddTriangle(f[j]-1, f[j+1]-1, f[j+2]-1);
+	        		m.AddTriangle(ind[j]-1, ind[j+1]-1, ind[j+2]-1);	//run through the indices by threes
 //	        		Debug.WriteLine("Adding face for " + f[j] + ":" + f[j+1] + ":" + f[j+2]);
 	        	}
 	        	
@@ -176,13 +189,11 @@ namespace ikeo
 	        	}
 	        	
 	        	m.ComputeVertexNormals();
-
+	        	m.ComputeFaceNormals();
 	        }
 
 	        #endregion
-	        
-	        return meshes;
-	        
+
 		}
 		
 	}
