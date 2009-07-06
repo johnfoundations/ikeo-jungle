@@ -65,8 +65,11 @@ namespace ikeo
 	        	{
 	        		string[] lineSplit = line.Split(' ');
 	        		
+	        		//always add the first set of inner lists
+	        		
 	        		if(lineSplit[0] == "g")
 	        		{	
+	        			//REMOVED - SOME OBJ FILES DON'T USE 'g'
 	        			if(meshCount == 0)
 	        			{
 							indices.Add(innerIndexList);		//add the first set of sub lists
@@ -111,11 +114,11 @@ namespace ikeo
 
 		        			if(innerSplit.Length > 1)	// like : a/b/c
 		        			{
-		        				innerIndexList.Add(Convert.ToInt16(innerSplit[0]));
+		        				innerIndexList.Add(Convert.ToInt32(innerSplit[0]));
 		        				
 		        				if(innerSplit[1] != "")
 		        				{
-		        					innerTextIndices.Add(Convert.ToInt16(innerSplit[1]));
+		        					innerTextIndices.Add(Convert.ToInt32(innerSplit[1]));
 		        				}
 		        				else{
 		        					innerTextIndices.Add(0);	//add a zero as a placeholder
@@ -125,7 +128,7 @@ namespace ikeo
 		        				{
 		        					if(innerSplit[2] != "")
 		        					{
-		        						innerNormIndices.Add(Convert.ToInt16(innerSplit[2]));
+		        						innerNormIndices.Add(Convert.ToInt32(innerSplit[2]));
 		        					}
 		        					else{
 		        						innerNormIndices.Add(0);
@@ -134,7 +137,7 @@ namespace ikeo
 		        			}
 		        			else	//just a
 		        			{
-		        				innerIndexList.Add(Convert.ToInt16(innerSplit[0]));
+		        				innerIndexList.Add(Convert.ToInt32(innerSplit[0]));
 		        			}
 	        			}
 
@@ -143,10 +146,17 @@ namespace ikeo
 	        		{
 	        			Vector vt = new Vector(Convert.ToDouble(lineSplit[1]),
 	        			                      Convert.ToDouble(lineSplit[2]),
-	        			                      Convert.ToDouble(0.0));
+	        			                      Convert.ToDouble(0.0));	//add a zero to fill the z of the Vector
 	        			textCoords.Add(vt);
 	        		}
 	        	}
+	        }
+	        if(meshCount == 0)	//if it never hit a g tag - it's all one object
+	        {
+	        	indices.Add(innerIndexList);				//add the previous one
+				textIndices.Add(innerTextIndices);
+				normIndices.Add(innerNormIndices);
+				meshCount++;
 	        }
 	        #endregion
 	        
@@ -167,11 +177,15 @@ namespace ikeo
 //	        		Debug.WriteLine("Adding vertex for " + verts[j].x +":" + verts[j].y + ":" + verts[j].z);
 	        	}
 	        	
-	        	//create the texture coords
-	        	for(int j=0; j<m.vertexCount() ;j++)
+	        	//create the texture coords - if they exist
+	        	if(textCoords.Count != 0)
 	        	{
-	        		m.vertices[j].tex = textCoords[j];
+		        	for(int j=0; j<m.vertexCount() ;j++)
+		        	{
+		        		m.vertices[j].tex = textCoords[j];
+		        	}
 	        	}
+	        	
 	        	//add the faces
 	        	for(int j=0; j<ind.Count-2; j+=3)
 	        	{
@@ -189,7 +203,7 @@ namespace ikeo
 	        	}
 	        	
 	        	m.ComputeVertexNormals();
-	        	m.ComputeFaceNormals();
+
 	        }
 
 	        #endregion
