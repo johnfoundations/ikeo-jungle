@@ -91,6 +91,7 @@ namespace ikeo
 		bool _drawNodeNumbers 	= false;
 		bool _drawHUD			= true;
 		bool _lightsOn			= true;
+		bool _zoomToFit			= false;
 		#endregion
 		
 		#region global object/display lists
@@ -138,10 +139,10 @@ namespace ikeo
 						1F,
 						0F};
 		private static float[] _LightPosition = new float[] {
-						.3F,
-						-1.0F,
-						0F,
-						0F};
+						0.0F,
+						0.0F,
+						0.0F,
+						1.0F};
 		private static float[] _LightSpecular = new float[] {
 						1F,
 						1F,
@@ -266,7 +267,7 @@ namespace ikeo
 			
 			if(e.KeyCode == Keys.L)
 			{
-				if(_lightsOn = true) 
+				if(_lightsOn == true) 
 				{
 					_lightsOn = false;
 					GL.Disable(EnableCap.Lighting);
@@ -275,6 +276,18 @@ namespace ikeo
 					GL.Enable(EnableCap.Lighting);
 				}
 			}
+			
+			if(e.KeyCode == Keys.C)
+			{
+				if(_drawClipPlanes == true) _drawClipPlanes = false;
+				else _drawClipPlanes = true;
+			}
+			
+//			if(e.KeyCode == Keys.F)
+//			{
+//				_zoomToFit = true;
+//			}
+			
 		}
 		
 		#region Compute frame rate, redraw continuously
@@ -379,8 +392,6 @@ namespace ikeo
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadIdentity();
             Glu.Perspective(60.0, (double)this.glControl1.Width / (double)this.glControl1.Height, 1.0, 10000.0);
-            GL.MatrixMode(MatrixMode.Modelview);
-            GL.PopMatrix();
             
             #region lighting
             GL.Enable(EnableCap.Lighting);                                      // Enable Lighting
@@ -389,20 +400,23 @@ namespace ikeo
 			GL.Light(LightName.Light0, LightParameter.Diffuse, _LightDiffuse);
             GL.Light(LightName.Light0, LightParameter.Position, _LightPosition);
             GL.Light(LightName.Light0, LightParameter.Specular, _LightSpecular);
+			#endregion	//set this light in eye coordinates
+			
+            GL.MatrixMode(MatrixMode.Modelview);
+            GL.PopMatrix();
 
+            #region material
             GL.Enable(EnableCap.ColorMaterial);	 // Enable Color Material
             GL.ColorMaterial(MaterialFace.Front,ColorMaterialParameter.Diffuse);	//.AmbientAndDiffuse);
             GL.FrontFace(FrontFaceDirection.Cw);	//this determines winding for all polys
-    
-            GL.ColorMaterial(MaterialFace.Front, ColorMaterialParameter.Diffuse);
 
-            #endregion lighting
+            #endregion
 
             #region blending
 //			GL.Disable(EnableCap.Blend);
             #endregion blending
 
-            GL.PolygonOffset(1.0f, 100.0f);
+            GL.PolygonOffset(1.0f, 1.0f);
             GL.EnableClientState(EnableCap.PolygonOffsetFill);
 
             arcBall.setBounds((float)glControl1.Width, (float)glControl1.Height); // Update mouse bounds for arcball
@@ -672,9 +686,16 @@ namespace ikeo
 		/// </summary>
 		private void ZoomToFill()
 		{
-			
-			Glu.LookAt(0.0f, 0.0f, -100.0f, sceneCenter.X, sceneCenter.Z, sceneCenter.Y, 0.0, 1.0, 0.0);
+			//zoom to fit the scene to the bounding sphere
+			float rad = 0.0f;
+			if(sceneCenter.X > rad) rad = sceneCenter.X;
+			if(sceneCenter.Y > rad) rad = sceneCenter.Y;
+			if(sceneCenter.Z > rad) rad = sceneCenter.Z;
+
+			Glu.LookAt(0.0f, 0.0f, rad, sceneCenter.X, sceneCenter.Y, sceneCenter.Z, 0.0f, 1.0f, 0.0f);
+			_zoomToFit = false;	//turn it off
 		}
+		
 		
 		/// <summary>
 		/// Draw lines from a vertex array
@@ -796,7 +817,7 @@ namespace ikeo
 
 				//DRAW FACES
 				GL.Color3(Color.LightBlue);
-				GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill);
+				GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
 				GL.DrawElements(BeginMode.Triangles,ind.Length, DrawElementsType.UnsignedInt, ind);
 				
 				//turn off texturing before line drawing
@@ -814,7 +835,7 @@ namespace ikeo
 					//DRAW WIREFRAME
 					GL.LineWidth(_lineSize);
 					GL.Color3(Color.Black);
-					GL.PolygonMode(MaterialFace.Front, PolygonMode.Line);
+					GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
 					GL.DrawElements(BeginMode.Triangles,ind.Length, DrawElementsType.UnsignedInt, ind);
 	
 					//DRAW POINTS
@@ -917,7 +938,8 @@ namespace ikeo
 			
 			//draw text here
 			GL.Disable(EnableCap.Lighting);
-
+			GL.Disable(EnableCap.ClipPlane0);
+			
 			_text.Begin();
 			GL.Translate(10.0f, 10.0f, 0.0f);
 			_text.Print("Total vertices \t: " + _totalVerticesInScene.ToString(), _sans, Color.LightGray);
@@ -932,6 +954,7 @@ namespace ikeo
 //			_text.End();
 
 			GL.Enable(EnableCap.Lighting);
+			GL.Enable(EnableCap.ClipPlane0);
 			
 			GL.MatrixMode(MatrixMode.Projection);
 			GL.PopMatrix();
@@ -964,10 +987,15 @@ namespace ikeo
               	//look at the scene center
               	//TODO: back this off by the distance
               	//of the scene bounding sphere
-				Glu.LookAt(0.0, 0.0, +100.0,
-              	           0.0,0.0,0.0,
-              	           0.0, 1.0, 0.0);
-
+              	if(_zoomToFit)
+              	{
+              		ZoomToFill();
+              	}
+              	else{
+					Glu.LookAt(0.0, 0.0, +100.0,
+	              	           0.0,0.0,0.0,
+	              	           0.0, 1.0, 0.0);
+              	}
                 #region plot all diplay lists
     
                 if (_modelLoaded)
