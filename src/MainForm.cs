@@ -73,15 +73,15 @@ namespace ikeo
 		#endregion
 		
 		#region drawing settings
-		float _lineSize = 1.0f;		//gl line render size
+		float _lineSize = 1.0f;				//gl line render size
 		float _normalSize = .25f;
-		float _pointSize = 7.0f;		//gl node render size
-		float _red = 0.0f;			//gl red color
-		float _green = 0.0f;			//gl green color
-		float _blue = 0.0f;			//gl blue color;
-//		float _alpha = 1.0f;			//gl alpha color;
+		float _pointSize = 7.0f;			//gl node render size
+		float _red = 0.0f;					//gl red color
+		float _green = 0.0f;				//gl green color
+		float _blue = 0.0f;					//gl blue color;
+//		float _alpha = 1.0f;				//gl alpha color;
 		
-//		bool _drawWireFrame 	= true;		
+		bool _drawWireFrame 	= false;	//always start viewing the faces		
 //		bool _drawFaces 		= true;
 		bool _drawClipPlanes 	= false;
 		bool _drawNormals 		= false;
@@ -92,6 +92,7 @@ namespace ikeo
 		bool _drawHUD			= true;
 		bool _lightsOn			= true;
 		bool _zoomToFit			= false;
+		bool _drawGrid			= true;
 		#endregion
 		
 		#region global object/display lists
@@ -129,15 +130,15 @@ namespace ikeo
        	
         #region lighting
 		private static float[] _LightAmbient = new float[] {
-						0.1F,
-						0.1F,
-						0.1F,
+						0.0F,
+						0.0F,
+						0.0F,
 						1F};
 		private static float[] _LightDiffuse = new float[] {
 						1F,
 						1F,
 						1F,
-						0F};
+						0.0F};
 		private static float[] _LightPosition = new float[] {
 						0.0F,
 						0.0F,
@@ -283,6 +284,22 @@ namespace ikeo
 				else _drawClipPlanes = true;
 			}
 			
+			if(e.KeyCode == Keys.W)
+			{
+				if(_drawWireFrame == true) _drawWireFrame = false;
+				else _drawWireFrame = true;
+			}
+			
+			if(e.KeyCode == Keys.G)
+			{
+				if(_drawGrid == true) _drawGrid = false;
+				else _drawGrid = true;
+			}
+			
+//			if(e.KeyCode == Keys.Oemplus)
+//			{
+//				_cl0.norm.Z += 0.1f;
+//			}
 //			if(e.KeyCode == Keys.F)
 //			{
 //				_zoomToFit = true;
@@ -378,7 +395,7 @@ namespace ikeo
             GL.Enable(EnableCap.DepthTest);									// enables depth testing
 //            GL.ClearDepth(1.0f);											// depth buffer setup
             GL.Enable(EnableCap.PointSmooth);								// point smoothing
-            GL.Enable(EnableCap.LineSmooth);								//enable line smoothing
+//            GL.Enable(EnableCap.LineSmooth);								//enable line smoothing
 //            GL.Enable(EnableCap.CullFace);									//enable face culling
 			GL.Hint(HintTarget.PerspectiveCorrectionHint, HintMode.Nicest);	// nice perspective calculations
 			
@@ -432,61 +449,6 @@ namespace ikeo
 		{
 			SetupViewport();
 			glControl1.Invalidate();
-		}
-	
-		/// <summary>
-		/// Generate the display list for the torus
-		/// </summary>
-		/// <param name="MinorRadius"></param>
-		/// <param name="MajorRadius"></param>
-		private void torus1(float MinorRadius, float MajorRadius)                    // Draw A Torus With Normals
-        {
-            int i, j;
-            int stacks = 100;
-            int slices = 100;
-            _faces = GL.GenLists(1);						    	// build a display list
-            GL.NewList(_faces, ListMode.Compile);					// start loading into diplay list
-            GL.Begin(BeginMode.TriangleStrip);                      // Start A Triangle Strip
-            for (i = 0; i < stacks; i++)                            // Stacks
-            {
-                for (j = -1; j < slices; j++)                       // Slices
-                {
-                    float wrapFrac = (j % stacks) / (float)slices;
-                    double phi = Math.PI * 2.0 * wrapFrac;
-                    float sinphi = (float)(Math.Sin(phi));
-                    float cosphi = (float)(Math.Cos(phi));
-
-                    float r = MajorRadius + MinorRadius * cosphi;
-
-                    GL.Normal3(
-                            (Math.Sin(Math.PI * 2.0 * (i % stacks + wrapFrac) / (float)slices)) * cosphi,
-                            sinphi,
-                            (Math.Cos(Math.PI * 2.0 * (i % stacks + wrapFrac) / (float)slices)) * cosphi);
-                    GL.Vertex3(
-                            (Math.Sin(Math.PI * 2.0 * (i % stacks + wrapFrac) / (float)slices)) * r,
-                            MinorRadius * sinphi,
-                            (Math.Cos(Math.PI * 2.0 * (i % stacks + wrapFrac) / (float)slices)) * r);
-
-                    GL.Normal3(
-                            (Math.Sin(Math.PI * 2.0 * (i + 1 % stacks + wrapFrac) / (float)slices)) * cosphi,
-                            sinphi,
-                            (Math.Cos(Math.PI * 2.0 * (i + 1 % stacks + wrapFrac) / (float)slices)) * cosphi);
-                    GL.Vertex3(
-                            (Math.Sin(Math.PI * 2.0 * (i + 1 % stacks + wrapFrac) / (float)slices)) * r,
-                            MinorRadius * sinphi,
-                            (Math.Cos(Math.PI * 2.0 * (i + 1 % stacks + wrapFrac) / (float)slices)) * r);
-                }
-            }
-            GL.End();                                                        // Done Torus
-            GL.EndList(); // end dispaly list
-        }
-
-		/// <summary>
-		/// Looks at all user input and sets values
-		/// </summary>
-		private void PollUserInput()
-		{
-			
 		}
 		
 		/// <summary>
@@ -777,7 +739,7 @@ namespace ikeo
            	GL.PopMatrix(); // NEW: Unapply Dynamic Transform
 		}
 		
-		private void DrawMeshesSolid(bool clipTest)
+		private void DrawMeshesSolid()	//bool clipTest)
 		{
 			
 			GL.PushMatrix();
@@ -802,57 +764,80 @@ namespace ikeo
 				
 				GL.NormalPointer(NormalPointerType.Float, 0, n);
 				GL.VertexPointer(3, VertexPointerType.Float, 0, v);
-				
+
 				if(_drawImageTexture)
 				{
 					if(_imageLoaded)
 					{
 						GL.Enable(EnableCap.Texture2D);
 						GL.BindTexture(TextureTarget.Texture2D, _texture);
-	//            		GL.Enable(EnableCap.Blend);
-	            		GL.TexCoordPointer(2, TexCoordPointerType.Float, 0 ,t);
-	
+		           		GL.TexCoordPointer(2, TexCoordPointerType.Float, 0 ,t);	
 					}
 				}
-
+				
 				//DRAW FACES
 				GL.Color3(Color.LightBlue);
-				GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+				GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill);
 				GL.DrawElements(BeginMode.Triangles,ind.Length, DrawElementsType.UnsignedInt, ind);
-				
-				//turn off texturing before line drawing
-				if(_drawImageTexture)
-				{
-					GL.DisableClientState(EnableCap.TextureCoordArray);
-					GL.Disable(EnableCap.Texture2D);
-				}
+
+			}
 			
-				if(!clipTest)
-				{
-					//TURN OFF LIGHTS FOR POINTS AND LINES
-					GL.Disable(EnableCap.Lighting);
-					
-					//DRAW WIREFRAME
-					GL.LineWidth(_lineSize);
-					GL.Color3(Color.Black);
-					GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
-					GL.DrawElements(BeginMode.Triangles,ind.Length, DrawElementsType.UnsignedInt, ind);
-	
-					//DRAW POINTS
-	//				GL.PointSize(_pointSize);
-	//				GL.Color3(Color.Red);
-	//				GL.PolygonMode(MaterialFace.Front, PolygonMode.Point);
-	//				GL.DrawElements(BeginMode.Triangles,ind.Length, DrawElementsType.UnsignedInt, ind);
-					
-					//TURN LIGHTS BACK ON
-					GL.Enable(EnableCap.Lighting);
-				}
+			if(_imageLoaded)
+			{
+				GL.DisableClientState(EnableCap.TextureCoordArray);
+				GL.Disable(EnableCap.Texture2D);
 			}
 			
 			GL.DisableClientState(EnableCap.NormalArray);
 			GL.DisableClientState(EnableCap.VertexArray);
+
+			GL.PopMatrix();
+		}
+		
+		private void DrawMeshesWire()
+		{
+			GL.PushMatrix();
+	        GL.MultMatrix(matrix);
+	        GL.Translate(0.0f-sceneCenter.X, 0.0f-sceneCenter.Y, 0.0f-sceneCenter.Z);
+
+			GL.EnableClientState(EnableCap.VertexArray);
+			GL.EnableClientState(EnableCap.NormalArray);
 			
-//			GL.Disable(EnableCap.Blend);
+			if(_drawImageTexture)
+			{
+				GL.EnableClientState(EnableCap.TextureCoordArray);
+			}
+			
+			for(int i=0; i<_meshVerts.Count; i++)	//pick one of the lists to use as the count
+			{
+
+				float[] v 	= _meshVerts[i];
+				float[] t 	= _textCoords[i];
+				int[] ind	= _indices[i];
+				float[] n	= _meshNormals[i];
+				
+				GL.NormalPointer(NormalPointerType.Float, 0, n);
+				GL.VertexPointer(3, VertexPointerType.Float, 0, v);
+				
+				//TURN OFF LIGHTS FOR POINTS AND LINES
+				GL.Disable(EnableCap.Lighting);
+				GL.PushAttrib(AttribMask.CurrentBit);
+				
+				//DRAW WIREFRAME
+				GL.LineWidth(.5f);
+				GL.Color3(Color.Black);
+				GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+				GL.DrawElements(BeginMode.Triangles,ind.Length, DrawElementsType.UnsignedInt, ind);
+				
+				GL.PopAttrib();
+				//TURN LIGHTS BACK ON
+				GL.Enable(EnableCap.Lighting);
+				
+			}
+			
+			GL.DisableClientState(EnableCap.NormalArray);
+			GL.DisableClientState(EnableCap.VertexArray);
+
 			GL.PopMatrix();
 		}
 		
@@ -981,8 +966,6 @@ namespace ikeo
                 GL.LoadIdentity();
 				
 				DrawBackground();
-			
-//				DrawGrid();
 
               	//look at the scene center
               	//TODO: back this off by the distance
@@ -996,8 +979,13 @@ namespace ikeo
 	              	           0.0,0.0,0.0,
 	              	           0.0, 1.0, 0.0);
               	}
+              	
                 #region plot all diplay lists
-    
+    			
+                if(_drawGrid) DrawGrid();
+          
+                DrawAxes();
+                
                 if (_modelLoaded)
                 {
                 	//calc distance to scene center
@@ -1022,11 +1010,11 @@ namespace ikeo
 		                GL.StencilFunc(StencilFunction.Always, 0, 0);					//set stencil function
 		                GL.StencilOp(StencilOp.Keep, StencilOp.Keep, StencilOp.Incr);	//increment by one for non-black pixels
 		                GL.CullFace(CullFaceMode.Front);								//render back faces only
-		                DrawMeshesSolid(true);													//render
+		                DrawMeshesSolid();													//render
 		                //second pass
 		                GL.StencilOp(StencilOp.Keep, StencilOp.Keep, StencilOp.Decr);	//decrement by one for non-black pixels
 		                GL.CullFace(CullFaceMode.Back);									//render the front faces only
-		                DrawMeshesSolid(true);													//render
+		                DrawMeshesSolid();													//render
 		                GL.Disable(EnableCap.CullFace);									//disable face culling
 		                
 		                //draw the clip quads
@@ -1039,12 +1027,16 @@ namespace ikeo
 		                GL.Disable(EnableCap.StencilTest);								//turn off stencil testing
 		                GL.Enable(EnableCap.ClipPlane0);								//turn the clip plane back on
                 	}
+                	else{
+                		GL.Disable(EnableCap.ClipPlane0);
+                	}
                 	#endregion
                 	
                 	#region meshes
                 	GL.Enable(EnableCap.CullFace);
                 	GL.CullFace(CullFaceMode.Back);
-	                DrawMeshesSolid(true);
+                	if(!_drawWireFrame)DrawMeshesSolid();
+	                DrawMeshesWire();
 	                GL.Disable(EnableCap.CullFace);
 	                #endregion
 
@@ -1271,13 +1263,16 @@ namespace ikeo
 			GL.PushMatrix();
 			GL.LoadIdentity();
 			
+			GL.PushAttrib(AttribMask.CurrentBit);
+			
+			GL.PolygonMode(MaterialFace.FrontAndBack,PolygonMode.Fill);
 			GL.ShadeModel(ShadingModel.Smooth);
 	
 			GL.Begin(BeginMode.Quads);
-				GL.Color3(0.4,0.6,0.8);
+				GL.Color3(0.5,0.7,0.9);
 					GL.Vertex2(0,0);
 					GL.Vertex2(glControl1.Width,0);
-				GL.Color3(0.9,0.9,0.9);
+				GL.Color3(0.95,0.95,0.95);
 					GL.Vertex2(glControl1.Width, glControl1.Height);
 					GL.Vertex2(0,glControl1.Height);
 			GL.End();
@@ -1287,6 +1282,8 @@ namespace ikeo
 			GL.MatrixMode(MatrixMode.Modelview);
 			GL.PopMatrix();
 			
+			GL.PopAttrib();
+			
 			GL.Enable(EnableCap.Lighting);	//turn the lights back on
 			GL.Enable(EnableCap.Blend);
 			GL.Enable(EnableCap.DepthTest);
@@ -1295,9 +1292,78 @@ namespace ikeo
         
         void DrawGrid()
         {
-        	//TODO://implement grid drawing
+        	GL.PushMatrix();
+			GL.MultMatrix(matrix);
+//			GL.Translate(0.0f-sceneCenter.X, 0.0f-sceneCenter.Y, 0.0f-sceneCenter.Z);
+			GL.PushAttrib(AttribMask.CurrentBit);
+			
+			GL.Disable(EnableCap.Lighting);
+			GL.Disable(EnableCap.ClipPlane0);
+//			GL.Color3(Color.LightGray);
+			GL.LineWidth(0.1f);
+			GL.Begin(BeginMode.Lines);
+			
+			//draw the x lines
+			for(int x=-50; x<=50; x++)
+			{
+				if(x%10 == 0)GL.Color3(Color.DarkGray);
+				else GL.Color3(Color.LightGray);
+				GL.Vertex3(x, 0.0, -50.0);
+				GL.Vertex3(x, 0.0, 50.0);
+
+			}
+			for(int z=-50; z<=50; z++)
+			{
+				if(z%10 == 0)GL.Color3(Color.DarkGray);
+				else GL.Color3(Color.LightGray);
+				GL.Vertex3(-50.0, 0.0, z);
+				GL.Vertex3(50.0, 0.0, z);
+
+			}
+			GL.End();
+			GL.Enable(EnableCap.ClipPlane0);
+			GL.Enable(EnableCap.Lighting);
+			GL.PopAttrib();
+			GL.PopMatrix();
         }
-		
+        
+        void DrawAxes()
+        {
+        	GL.PushMatrix();
+			GL.MultMatrix(matrix);
+			GL.PushAttrib(AttribMask.CurrentBit);			
+			GL.Disable(EnableCap.Lighting);
+			GL.Disable(EnableCap.ClipPlane0);
+			GL.LineWidth(3.0f);
+			GL.Begin(BeginMode.Lines);
+			
+			//x line
+			GL.Color3(1.0f,0.0f,0.0f);
+			GL.Vertex3(0.0,0.0,0.0);
+			GL.Vertex3(5.0,0.0,0.0);
+			//y line
+			GL.Color3(0.0f,1.0f,0.0f);
+			GL.Vertex3(0.0,0.0,0.0);
+			GL.Vertex3(0.0,5.0,0.0);
+			
+			//z line
+			GL.Color3(0.0f,0.0f,1.0f);
+			GL.Vertex3(0.0,0.0,0.0);
+			GL.Vertex3(0.0,0.0,5.0);
+			
+			GL.End();
+			
+			GL.Enable(EnableCap.ClipPlane0);
+			GL.Enable(EnableCap.Lighting);
+			GL.PopAttrib();
+			GL.PopMatrix();
+        }
+        
+        void DrawBoundingBoxes()
+        {
+        	//TODO:Draw bounding boxes	
+        }
+        
 		void Load_buttClick(object sender, EventArgs e)
 		{
 			OpenFileDialog of = new OpenFileDialog();
