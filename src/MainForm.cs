@@ -81,8 +81,8 @@ namespace ikeo
 		float _blue = 0.0f;					//gl blue color;
 //		float _alpha = 1.0f;				//gl alpha color;
 		
-		bool _drawWireFrame 	= false;	//always start viewing the faces		
-//		bool _drawFaces 		= true;
+		bool _drawWireFrame 	= true;	//always start viewing the faces		
+		bool _drawFaces 		= true;
 		bool _drawClipPlanes 	= false;
 		bool _drawNormals 		= false;
 		bool _drawImageTexture 	= true;
@@ -290,6 +290,12 @@ namespace ikeo
 				else _drawWireFrame = true;
 			}
 			
+			if(e.KeyCode == Keys.F)
+			{
+				if(_drawFaces == true) _drawFaces = false;
+				else _drawFaces = true;
+			}
+			
 			if(e.KeyCode == Keys.G)
 			{
 				if(_drawGrid == true) _drawGrid = false;
@@ -299,6 +305,7 @@ namespace ikeo
 //			if(e.KeyCode == Keys.Oemplus)
 //			{
 //				_cl0.norm.Z += 0.1f;
+//				GL.ClipPlane(ClipPlaneName.ClipPlane0, new double[]{_cl0.norm.X, _cl0.norm.Y, _cl0.norm.Z += 0.1f});
 //			}
 //			if(e.KeyCode == Keys.F)
 //			{
@@ -395,8 +402,8 @@ namespace ikeo
             GL.Enable(EnableCap.DepthTest);									// enables depth testing
 //            GL.ClearDepth(1.0f);											// depth buffer setup
             GL.Enable(EnableCap.PointSmooth);								// point smoothing
-//            GL.Enable(EnableCap.LineSmooth);								//enable line smoothing
-//            GL.Enable(EnableCap.CullFace);									//enable face culling
+            GL.Enable(EnableCap.LineSmooth);								//enable line smoothing
+//            GL.Enable(EnableCap.CullFace);								//enable face culling
 			GL.Hint(HintTarget.PerspectiveCorrectionHint, HintMode.Nicest);	// nice perspective calculations
 			
 			GL.ClearColor(Color.LightBlue);									// black to black
@@ -521,7 +528,7 @@ namespace ikeo
 					{
 						_sceneMax.Y = (float)m.vertices[i].v.y;
 					}
-					if(Math.Abs((float)m.vertices[i].v.z) > _sceneMax.Z);
+					if(Math.Abs((float)m.vertices[i].v.z) > _sceneMax.Z)
 					{
 						_sceneMax.Z = (float)m.vertices[i].v.z;
 					}
@@ -566,6 +573,98 @@ namespace ikeo
 			sceneCenter.Z = avgZ/vCount;
 		}
 		
+		private void SetupMeshVertexArraysBig()
+		{
+			int vCount = 0;
+			float avgX = 0.0f;
+			float avgY = 0.0f;
+			float avgZ = 0.0f;
+			
+			_meshVerts.Clear();
+			_indices.Clear();
+			_textCoords.Clear();
+			_meshNormals.Clear();
+				
+			foreach(Mesh m in _meshList)
+			{
+				float[]verts 	= new float[m.faceCount()*3*3];
+				int[]ind		= new int[m.faceCount()*3];		//face indices only - drop the textCoord and norm indices
+				float[]text		= new float[m.faceCount()*3*2];
+				float[]norms	= new float[m.faceCount()*3*3];
+				
+				int vertCount = 0;
+				int textCount = 0;
+				int indCount = 0;
+				int normCount = 0;
+				
+				for(int i=0; i<m.faceCount(); i++)
+				{
+
+					for(int j=0; j<3; j++)
+					{
+						//add the verts
+						verts[vertCount] 	= (float)m.faces[i].vertices[j].v.x;
+						verts[vertCount+1] 	= (float)m.faces[i].vertices[j].v.y;
+						verts[vertCount+2] 	= (float)m.faces[i].vertices[j].v.z;
+						
+						//tracking the scene center
+						if(verts[vertCount] > _sceneMax.X)
+						{
+							_sceneMax.X = verts[vertCount];
+						}
+						if(verts[vertCount+1] > _sceneMax.Y)
+						{
+							_sceneMax.Y = verts[vertCount+1];
+						}
+						if(verts[vertCount+2] > _sceneMax.Z)
+						{
+							_sceneMax.Z = verts[vertCount+2];
+						}
+						
+						vertCount += 3;
+						
+						//add the texture coordinates
+						text[textCount] 	= (float)m.faces[i].vertices[j].tex.x;
+						text[textCount+1] 	= 1.0f - (float)m.faces[i].vertices[j].tex.y;
+						textCount += 2;
+						
+						_totalVerticesInScene+=3;
+						
+						//add the normals
+						norms[normCount]	= (float)m.faces[i].normal.x;
+						norms[normCount+1]	= (float)m.faces[i].normal.y;
+						norms[normCount+2]	= (float)m.faces[i].normal.z;
+						normCount += 3;
+
+						//tracking the average
+						avgX += (float)m.vertices[j].v.x;
+						avgY += (float)m.vertices[j].v.y;
+						avgZ += (float)m.vertices[j].v.z;
+						vCount++;
+					}
+
+					ind[indCount] = indCount;
+					ind[indCount+1] = indCount+1;
+					ind[indCount+2] = indCount+2;
+					
+					indCount += 3;
+					_totalFacesInScene ++;
+					
+				}
+
+				//add all the arrays to the lists
+				_meshVerts.Add(verts);
+				_indices.Add(ind);
+				_textCoords.Add(text);
+				_meshNormals.Add(norms);
+				
+			}
+			
+			sceneCenter.X = avgX/vCount;
+			sceneCenter.Y = avgY/vCount;
+			sceneCenter.Z = avgZ/vCount;
+		}
+		
 		private void SetupVertexBufferObjects()
 		{
 			
@@ -577,6 +676,8 @@ namespace ikeo
 			{
 				m.ReverseNormals();
 			}
+			
+			SetupMeshVertexArraysBig();
 			
 			_reverseNormals = false;	//turn it off
 		}
@@ -707,6 +808,50 @@ namespace ikeo
            	GL.PopMatrix(); // NEW: Unapply Dynamic Transform
 		}
 		
+		private void DrawNormalsFace()
+		{	
+			GL.PushMatrix();                 // NEW: Prepare Dynamic Transform
+          	GL.MultMatrix(matrix);           // NEW: Apply Dynamic Transform
+			GL.Translate(0.0f-sceneCenter.X, 0.0f-sceneCenter.Y, 0.0f-sceneCenter.Z);
+			
+			GL.Disable(EnableCap.Lighting);
+			GL.PushAttrib(AttribMask.CurrentBit);
+			GL.Color3(Color.White);
+            GL.LineWidth(_normalSize);
+            
+            GL.Begin(BeginMode.Lines);
+            
+			for(int i=0; i<_meshVerts.Count; i++)	//pick one of the lists to use as the count
+			{
+
+				float[] v 	= _meshVerts[i];
+				float[] t 	= _textCoords[i];
+				int[] ind	= _indices[i];
+				float[] n	= _meshNormals[i];
+			
+				for(int j=0; j<v.Length; j+=9)	//one face is xyzxyzxyz in the array
+				{
+					//average the three corners
+					Vector3f vCenter = new Vector3f((v[j] + v[j+3] + v[j+6])/3,
+					           						(v[j+1] + v[j+4] + v[j+7])/3,
+					           						(v[j+2] + v[j+5] + v[j+8])/3);
+					        						
+					Vector3f vNorm = new Vector3f(vCenter.x + n[j],
+					          						vCenter.y + n[j+1],
+					          						vCenter.z + n[j+2]);
+					
+					//draw the normal from the face center
+					GL.Vertex3(vCenter.x, vCenter.y, vCenter.z);
+					GL.Vertex3(vNorm.x, vNorm.y, vNorm.z);
+				}
+			}
+			
+			GL.End();
+            GL.PopAttrib();
+            GL.Enable(EnableCap.Lighting);
+           	GL.PopMatrix(); // NEW: Unapply Dynamic Transform
+		}
+		
 		private void DrawNormals()
 		{
 			GL.PushMatrix();                 // NEW: Prepare Dynamic Transform
@@ -722,7 +867,7 @@ namespace ikeo
             
             foreach(Mesh m in _meshList)
             {
-
+            	
             	for(int i=0; i<m.vertexCount(); i++)
             	{
             		Vector v1 = m.vertices[i].v;
@@ -824,7 +969,7 @@ namespace ikeo
 				GL.PushAttrib(AttribMask.CurrentBit);
 				
 				//DRAW WIREFRAME
-				GL.LineWidth(.5f);
+				GL.LineWidth(1.0f);
 				GL.Color3(Color.Black);
 				GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
 				GL.DrawElements(BeginMode.Triangles,ind.Length, DrawElementsType.UnsignedInt, ind);
@@ -1035,8 +1180,8 @@ namespace ikeo
                 	#region meshes
                 	GL.Enable(EnableCap.CullFace);
                 	GL.CullFace(CullFaceMode.Back);
-                	if(!_drawWireFrame)DrawMeshesSolid();
-	                DrawMeshesWire();
+                	if(_drawFaces)DrawMeshesSolid();
+                	if(_drawWireFrame)DrawMeshesWire();
 	                GL.Disable(EnableCap.CullFace);
 	                #endregion
 
@@ -1048,7 +1193,8 @@ namespace ikeo
 	                
 	                if(_drawNormals)
 	                {
-	                	DrawNormals();
+//	                	DrawNormals();
+	                	DrawNormalsFace();
 	                }
                 	#endregion
                 	
@@ -1294,7 +1440,7 @@ namespace ikeo
         {
         	GL.PushMatrix();
 			GL.MultMatrix(matrix);
-//			GL.Translate(0.0f-sceneCenter.X, 0.0f-sceneCenter.Y, 0.0f-sceneCenter.Z);
+			GL.Translate(0.0f-sceneCenter.X, 0.0f-sceneCenter.Y, 0.0f-sceneCenter.Z);
 			GL.PushAttrib(AttribMask.CurrentBit);
 			
 			GL.Disable(EnableCap.Lighting);
@@ -1331,6 +1477,7 @@ namespace ikeo
         {
         	GL.PushMatrix();
 			GL.MultMatrix(matrix);
+			GL.Translate(0.0f-sceneCenter.X, 0.0f-sceneCenter.Y, 0.0f-sceneCenter.Z);
 			GL.PushAttrib(AttribMask.CurrentBit);			
 			GL.Disable(EnableCap.Lighting);
 			GL.Disable(EnableCap.ClipPlane0);
@@ -1393,7 +1540,8 @@ namespace ikeo
 			}
 			   
 //			SetupVertexArray();	
-			SetupMeshVertexArrays();	//don't need to do this with new mesh reader
+//			SetupMeshVertexArrays();	//don't need to do this with new mesh reader
+			SetupMeshVertexArraysBig();
 			
 			SetupClipPlanes();
 
@@ -1622,9 +1770,12 @@ namespace ikeo
 	{
 		public Vector3[] quad;
 		public Vector3 norm;
+		public Vector3 center;
 		
-		public ClipPlane(Vector3 v1, Vector3 v2, Vector3 center)
+		public ClipPlane(Vector3 v1, Vector3 v2, Vector3 planeCenter)
 		{
+			center = planeCenter;
+			
 			norm = Vector3.Cross(v1, v2);	//find the normal of the clip plane
 
 			quad = new Vector3[4];
