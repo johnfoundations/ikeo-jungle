@@ -24,7 +24,8 @@ namespace ikeo
 		/// <summary>
 		/// Disposes resources used by the form.
 		/// </summary>
-		/// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+		/// <param name="disposing">true if managed resources shoul
+		/// d be disposed; otherwise, false.</param>
 		protected override void Dispose(bool disposing)
 		{
 			if (disposing) {

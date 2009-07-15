@@ -45,6 +45,7 @@
     <Compile Include="BHTensyl.cs" />
     <Compile Include="BHXML_Parser.cs" />
     <Compile Include="Element.cs" />
+    <Compile Include="IDFReader.cs" />
     <Compile Include="MainForm.cs" />
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
