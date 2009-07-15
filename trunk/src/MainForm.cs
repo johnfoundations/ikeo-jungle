@@ -93,6 +93,7 @@ namespace ikeo
 		bool _lightsOn			= true;
 		bool _zoomToFit			= false;
 		bool _drawGrid			= true;
+		bool _drawDataObjects	= true;
 		#endregion
 		
 		#region global object/display lists
@@ -105,7 +106,7 @@ namespace ikeo
 		List<int[]> _indices		= new List<int[]>();		//list for mesh vertex index arrays
 		List<float[]> _textCoords	= new List<float[]>();		//list for the texture coords
 		List<float[]> _meshNormals	= new List<float[]>();		//list for the mesh normals
-		
+		List<DataObject> _dataObjectList = new List<DataObject>();	//list for all the data objects
 		
 		private int _faces; 		// display list for all faces
 		private int[] _pointInd;
@@ -440,7 +441,7 @@ namespace ikeo
 //			GL.Disable(EnableCap.Blend);
             #endregion blending
 
-            GL.PolygonOffset(1.0f, 1.0f);
+            GL.PolygonOffset(1.0f, -1.0f);
             GL.EnableClientState(EnableCap.PolygonOffsetFill);
 
             arcBall.setBounds((float)glControl1.Width, (float)glControl1.Height); // Update mouse bounds for arcball
@@ -986,6 +987,22 @@ namespace ikeo
 			GL.PopMatrix();
 		}
 		
+		private void DrawDataObjects()
+		{
+			GL.PushMatrix();
+	        GL.MultMatrix(matrix);
+	        GL.Translate(0.0f-sceneCenter.X, 0.0f-sceneCenter.Y, 0.0f-sceneCenter.Z);
+	        GL.Disable(EnableCap.Lighting);
+	        GL.Begin(BeginMode.Points);
+	        foreach(DataObject dObj in _dataObjectList)
+	        {
+	        	
+	        }
+	        GL.End(BeginMode.Points);
+	        GL.Enable(EnableCap.Lighting);
+	        GL.PopMatrix();
+		}
+		
 		/// <summary>
 		/// Draw node numbers
 		/// </summary>
@@ -1184,7 +1201,14 @@ namespace ikeo
                 	if(_drawWireFrame)DrawMeshesWire();
 	                GL.Disable(EnableCap.CullFace);
 	                #endregion
-
+					
+	                #region data objects
+	                GL.Enable(EnableCap.CullFace);
+                	GL.CullFace(CullFaceMode.Back);
+                	if(_drawFaces)DrawDataObjects();
+	                GL.Disable(EnableCap.CullFace);
+	                #endregion
+	                
 	                #region normals
 	                if(_reverseNormals)
 					{
@@ -1514,7 +1538,7 @@ namespace ikeo
 		void Load_buttClick(object sender, EventArgs e)
 		{
 			OpenFileDialog of = new OpenFileDialog();
-			of.Filter = "Xml Files|*.xml|OBJ Files|*.obj";
+			of.Filter = "Xml Files|*.xml|OBJ Files|*.obj|IDF Files|*.idf";
 			
 			if (of.ShowDialog() != DialogResult.OK)
 			{
@@ -1535,7 +1559,12 @@ namespace ikeo
 			{
 				ikeo.OBJReader objRead = new OBJReader(of.FileName);
 				_meshList = objRead.meshes;
-
+				MessageBox.Show(_meshList.Count + " meshes loaded...");
+			}
+			else if(of.FileName.EndsWith(".idf"))
+			{
+				ikeo.IDFReader idfRead = new IDFReader(of.FileName);
+				_meshList = idfRead.meshes;
 				MessageBox.Show(_meshList.Count + " meshes loaded...");
 			}
 			   
@@ -1612,7 +1641,9 @@ namespace ikeo
            	
             BitmapData data = _bitmap.LockBits(new Rectangle(0, 0, _bitmap.Width, _bitmap.Height),
                 ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-       
+       		
+           	//TODO: test for maximum possible texture size
+           	
            	GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
             GL.TexEnv(TextureEnvTarget.TextureEnv, TextureEnvParameter.TextureEnvMode, (float)TextureEnvModeCombine.Replace);
