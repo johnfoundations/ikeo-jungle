@@ -214,6 +214,8 @@ namespace ikeo
 		
 		public void LoadDataObjectsFromIDF(string fileName)
 		{
+			dataObjects = new List<DataObject>();
+			
 			DataObject dObj = null;
 			
 			using(TextReader sr = new StreamReader(fileName))
@@ -262,6 +264,9 @@ namespace ikeo
 		{
 			loc = location;
 			name = oName;
+			
+			parameters = new List<string>();
+			parameter_values = new List<string>();
 		}
 	}
 }

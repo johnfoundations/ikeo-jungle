@@ -993,13 +993,51 @@ namespace ikeo
 	        GL.MultMatrix(matrix);
 	        GL.Translate(0.0f-sceneCenter.X, 0.0f-sceneCenter.Y, 0.0f-sceneCenter.Z);
 	        GL.Disable(EnableCap.Lighting);
-	        GL.Begin(BeginMode.Points);
+	        GL.Disable(EnableCap.DepthTest);
+	        
+	        GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+	        GL.PushAttrib(AttribMask.CurrentBit);
+	        GL.Begin(BeginMode.Quads);
 	        foreach(DataObject dObj in _dataObjectList)
 	        {
+	        	GL.Color3(1.0f,1.0f,0.0f);
 	        	
+	        	GL.Vertex3(dObj.loc.x + .1, dObj.loc.y + .1, dObj.loc.z + .1);
+	        	GL.Vertex3(dObj.loc.x - .1, dObj.loc.y + .1, dObj.loc.z + .1);
+	        	GL.Vertex3(dObj.loc.x - .1, dObj.loc.y + .1, dObj.loc.z - .1);
+	        	GL.Vertex3(dObj.loc.x + .1, dObj.loc.y + .1, dObj.loc.z - .1);	//top face
+	        	
+	        	GL.Vertex3(dObj.loc.x + .1, dObj.loc.y - .1, dObj.loc.z - .1);	//bottom face
+	        	GL.Vertex3(dObj.loc.x - .1, dObj.loc.y - .1, dObj.loc.z - .1);
+	        	GL.Vertex3(dObj.loc.x - .1, dObj.loc.y - .1, dObj.loc.z + .1);
+	        	GL.Vertex3(dObj.loc.x + .1, dObj.loc.y - .1, dObj.loc.z + .1);
+
+	        	GL.Vertex3(dObj.loc.x + .1, dObj.loc.y + .1, dObj.loc.z + .1);
+	        	GL.Vertex3(dObj.loc.x + .1, dObj.loc.y - .1, dObj.loc.z + .1);
+	        	GL.Vertex3(dObj.loc.x - .1, dObj.loc.y - .1, dObj.loc.z + .1);
+	        	GL.Vertex3(dObj.loc.x - .1, dObj.loc.y + .1, dObj.loc.z + .1);	//right face
+	        	
+	        	GL.Vertex3(dObj.loc.x - .1, dObj.loc.y + .1, dObj.loc.z - .1);	//left face
+	        	GL.Vertex3(dObj.loc.x - .1, dObj.loc.y - .1, dObj.loc.z - .1);
+	        	GL.Vertex3(dObj.loc.x + .1, dObj.loc.y - .1, dObj.loc.z - .1);
+	        	GL.Vertex3(dObj.loc.x + .1, dObj.loc.y + .1, dObj.loc.z - .1);
+
+	        	GL.Vertex3(dObj.loc.x - .1, dObj.loc.y + .1, dObj.loc.z + .1);
+	        	GL.Vertex3(dObj.loc.x - .1, dObj.loc.y - .1, dObj.loc.z + .1);
+	        	GL.Vertex3(dObj.loc.x - .1, dObj.loc.y - .1, dObj.loc.z - .1);
+	        	GL.Vertex3(dObj.loc.x - .1, dObj.loc.y + .1, dObj.loc.z - .1);	//front face
+	        	
+	        	GL.Vertex3(dObj.loc.x + .1, dObj.loc.y + .1, dObj.loc.z - .1);	//back face
+	        	GL.Vertex3(dObj.loc.x + .1, dObj.loc.y - .1, dObj.loc.z - .1);
+	        	GL.Vertex3(dObj.loc.x + .1, dObj.loc.y - .1, dObj.loc.z + .1);
+	        	GL.Vertex3(dObj.loc.x + .1, dObj.loc.y + .1, dObj.loc.z + .1);
+
 	        }
-	        GL.End(BeginMode.Points);
+	        
+	        GL.End();
+	        GL.PopAttrib();
 	        GL.Enable(EnableCap.Lighting);
+	        GL.Enable(EnableCap.DepthTest);
 	        GL.PopMatrix();
 		}
 		
@@ -1205,7 +1243,7 @@ namespace ikeo
 	                #region data objects
 	                GL.Enable(EnableCap.CullFace);
                 	GL.CullFace(CullFaceMode.Back);
-                	if(_drawFaces)DrawDataObjects();
+                	if(_drawDataObjects)DrawDataObjects();
 	                GL.Disable(EnableCap.CullFace);
 	                #endregion
 	                
@@ -1565,6 +1603,7 @@ namespace ikeo
 			{
 				ikeo.IDFReader idfRead = new IDFReader(of.FileName);
 				_meshList = idfRead.meshes;
+				_dataObjectList = idfRead.dataObjects;
 				MessageBox.Show(_meshList.Count + " meshes loaded...");
 			}
 			   
