@@ -75,7 +75,7 @@ namespace ikeo
 		#region drawing settings
 		float _lineSize = 1.0f;				//gl line render size
 		float _normalSize = .25f;
-		float _pointSize = 7.0f;			//gl node render size
+		float _pointSize = 12.0f;			//gl node render size
 		float _red = 0.0f;					//gl red color
 		float _green = 0.0f;				//gl green color
 		float _blue = 0.0f;					//gl blue color;
@@ -407,7 +407,7 @@ namespace ikeo
 //            GL.Enable(EnableCap.CullFace);								//enable face culling
 			GL.Hint(HintTarget.PerspectiveCorrectionHint, HintMode.Nicest);	// nice perspective calculations
 			
-			GL.ClearColor(Color.LightBlue);									// black to black
+			GL.ClearColor(Color.LightBlue);									// black to light blue
 			
             GL.Viewport(0, 0,
                         viewport1.Width, 
@@ -417,36 +417,65 @@ namespace ikeo
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadIdentity();
             Glu.Perspective(60.0, (double)this.glControl1.Width / (double)this.glControl1.Height, 1.0, 10000.0);
-            
-            #region lighting
-            GL.Enable(EnableCap.Lighting);                                      // Enable Lighting
-			GL.Enable(EnableCap.Light0);
-            
-			GL.Light(LightName.Light0, LightParameter.Diffuse, _LightDiffuse);
-            GL.Light(LightName.Light0, LightParameter.Position, _LightPosition);
-            GL.Light(LightName.Light0, LightParameter.Specular, _LightSpecular);
-			#endregion	//set this light in eye coordinates
+
+            EnableLighting();
 			
             GL.MatrixMode(MatrixMode.Modelview);
             GL.PopMatrix();
 
-            #region material
-            GL.Enable(EnableCap.ColorMaterial);	 // Enable Color Material
-            GL.ColorMaterial(MaterialFace.Front,ColorMaterialParameter.Diffuse);	//.AmbientAndDiffuse);
-            GL.FrontFace(FrontFaceDirection.Cw);	//this determines winding for all polys
-
-            #endregion
+            EnableMaterials();
 
             #region blending
-//			GL.Disable(EnableCap.Blend);
+			//GL.Disable(EnableCap.Blend);
             #endregion blending
 
             GL.PolygonOffset(1.0f, -1.0f);
             GL.EnableClientState(EnableCap.PolygonOffsetFill);
 
+            EnableFog();
+
             arcBall.setBounds((float)glControl1.Width, (float)glControl1.Height); // Update mouse bounds for arcball
+            
             PlotGL();
 		}
+
+        private static void EnableMaterials()
+        {
+            #region material
+            GL.Enable(EnableCap.ColorMaterial);	 // Enable Color Material
+            GL.ColorMaterial(MaterialFace.Front, ColorMaterialParameter.Diffuse);	//.AmbientAndDiffuse);
+            GL.FrontFace(FrontFaceDirection.Cw);	//this determines winding for all polys
+
+            #endregion
+        }
+
+        private static void EnableLighting()
+        {
+            #region lighting
+            GL.Enable(EnableCap.Lighting);                                      // Enable Lighting
+            GL.Enable(EnableCap.Light0);
+
+            GL.Light(LightName.Light0, LightParameter.Diffuse, _LightDiffuse);
+            GL.Light(LightName.Light0, LightParameter.Position, _LightPosition);
+            GL.Light(LightName.Light0, LightParameter.Specular, _LightSpecular);
+            #endregion	//set this light in eye coordinates
+        }
+
+        private static void EnableFog()
+        {
+            GL.Enable(EnableCap.Fog);
+            GL.Fog(FogParameter.FogMode, 0);
+            float[] fogColor = new float[] {
+						0.5F,
+						0.5F,
+						0.5F,
+						1.0F};
+            GL.Fog(FogParameter.FogColor, fogColor);
+            GL.Fog(FogParameter.FogDensity, 0.008f);
+            GL.Hint(HintTarget.FogHint, HintMode.Nicest);
+            GL.Fog(FogParameter.FogStart, 1.0f);
+            GL.Fog(FogParameter.FogEnd, 10000.0F);
+        }
 		
 		/// <summary>
 		/// On resize of form - call setup method and invalidate the form.
@@ -645,8 +674,8 @@ namespace ikeo
 					}
 
 					ind[indCount] = indCount;
-					ind[indCount+1] = indCount+1;
-					ind[indCount+2] = indCount+2;
+					ind[indCount+1] = indCount+2;
+					ind[indCount+2] = indCount+1;
 					
 					indCount += 3;
 					_totalFacesInScene ++;
@@ -1279,7 +1308,9 @@ namespace ikeo
                 	}
                 	#endregion
                 }
-                
+
+                DrawNurbsSurface();
+
                 #endregion 
 
                 #region draw HUD
@@ -1572,7 +1603,62 @@ namespace ikeo
         {
         	//TODO:Draw bounding boxes	
         }
-        
+
+        void DrawNurbsSurface()
+        {
+            //float[] ctlpoints = new float[4,4,3];
+            bool showPoints = true;
+            IntPtr theNurb = Glu.NewNurbsRenderer();
+            float[] knots = new float[8]{0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+            int i, j;
+            float[] ctlpoints = new float[12];
+            int u, v;
+            for (u = 0; u < 4; u++)
+            {
+                for (v = 0; v < 4; v++)
+                {
+                    //ctlpoints[u,v,0] = 2.0f * (u - 1.5f);
+                    //ctlpoints[u,v,1] = 2.0f * (v - 1.5f);
+                    ctlpoints[u + v + 0] = 2.0f * (u - 1.5f);
+                    ctlpoints[u + v + 1] = 2.0f * (v - 1.5f);
+
+                    if ((u == 1 || u == 2) && (v == 1 || v == 2))
+                        ctlpoints[u + v + 2] = 3.0f;
+                    else
+                        ctlpoints[u + v + 2] = -3.0f;
+                }
+            }
+
+           GL.PushMatrix();
+           GL.Rotate(330.0, 1.0,0.0,0.0);
+           GL.Scale(0.5, 0.5, 0.5);
+
+           Glu.BeginSurface(theNurb);
+           Glu.NurbsSurface(theNurb, 
+                           8, knots, 8, knots,
+                           4 * 3, 3, ctlpoints, 
+                           4, 4,MapTarget.Map1Vertex3);
+           Glu.EndSurface(theNurb);
+
+           if (showPoints) {
+              GL.PointSize(5.0f);
+              GL.Disable(EnableCap.Lighting);
+              GL.Color3(1.0, 1.0, 0.0);
+              GL.Begin(BeginMode.Points);
+              for (i = 0; i < 4; i++) {
+                 for (j = 0; j < 4; j++) {
+                    GL.Vertex3(ctlpoints[i + j + 0], 
+                               ctlpoints[i + j + 1], ctlpoints[i + j + 2]);
+                 }
+              }
+              GL.End();
+              GL.Enable(EnableCap.Lighting);
+           }
+           GL.PopMatrix();
+           GL.Flush();
+
+        }
+
 		void Load_buttClick(object sender, EventArgs e)
 		{
 			OpenFileDialog of = new OpenFileDialog();
